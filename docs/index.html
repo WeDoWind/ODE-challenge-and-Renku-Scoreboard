@@ -46,7 +46,7 @@
   .container { max-width: 960px; margin: 0 auto; position: relative; z-index: 1; }
 
   header { 
-    margin-bottom: 80px;
+    margin-bottom: 20px;
   }
   .logo-line { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
   .windmill-icon { width: 36px; height: 36px; flex-shrink: 0; }
@@ -201,7 +201,7 @@
     for (const r of rows) {
       const keys = Object.keys(r) ;
       console.log(keys)
-      const participant = r[keys[8]] || '—';
+      const participant = r[keys[9]] || '—';
       // const email = r[keys[1]] || '—';
       // IMPORTANT: numeric values are columns 5,6,7
       const values = Object.values(r);
@@ -273,9 +273,7 @@
       <thead><tr>
         <th>Rank</th>
         <th>Participant</th>
-        <th class="hide-sm" style="text-align:right">Val 1</th>
-        <th class="hide-sm" style="text-align:right">Val 2</th>
-        <th class="hide-sm" style="text-align:right">Val 3</th>
+
         <th style="text-align:right">RMSE</th>
       </tr></thead><tbody>`;
 
@@ -284,16 +282,8 @@
       html += `<tr class="${i === 0 ? 'top-row' : ''}">
         <td class="rank-cell">${medals[i] ? '<span class="medal">' + medals[i] + '</span>' : '#' + (i + 1)}</td>
         <td class="participant-cell">${e.participant}</td>
-        <td class="val-cell hide-sm">${e.v1}</td>
-        <td class="val-cell hide-sm">${e.v2}</td>
-        <td class="val-cell hide-sm">${e.v3}</td>
+
         <td class="diff-cell">${e.rmse.toFixed(3)}</td>
-        <td class="score-cell">
-          <div class="score-inner">
-            <div class="bar-track"><div class="bar-fill" style="width:${barW}%"></div></div>
-            <span class="score-num">${e.score}</span>
-          </div>
-        </td>
       </tr>`;
     });
 
