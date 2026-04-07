@@ -1,227 +1,376 @@
-w<!DOCTYPE html>
-<html lang="de" class="dark">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RMSE Leaderboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .fade-in {
-            animation: fadeIn 0.3s ease-out forwards;
-        }
-        .rank-badge {
-            width: 48px;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-        }
-        .loading-spinner {
-            border: 3px solid #374151;
-            border-top: 3px solid #3b82f6;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wind Challenge Scoreboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@300;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root {
+    --bg: #0b0f14;
+    --surface: #131920;
+    --surface2: #1c2530;
+    --border: #253040;
+    /* --accent: #00c8a0; */
+    --accent: #53519e;
+    --accent2: #0098f0;
+    --text: #e8edf2;
+    --muted: #5a7080;
+    --gold: #f0b840;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,200,160,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,200,160,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { max-width: 960px; margin: 0 auto; position: relative; z-index: 1; }
+
+  header { 
+    margin-bottom: 80px;
+  }
+  .logo-line { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+  .windmill-icon { width: 36px; height: 36px; flex-shrink: 0; }
+  h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700; font-size: 36px;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--text);
+  }
+  h1 span { color: var(--accent); }
+  .subtitle {
+    font-size: 14px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--muted); font-weight: 500; margin-left: 50px;
+  }
+
+  .status-bar {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 24px; font-size: 12px;
+    font-family: 'Space Mono', monospace; color: var(--muted);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+  .dot.live { background: var(--accent); animation: pulse 2s infinite; }
+  .dot.error { background: #ff6060; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .stats {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 12px; margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 4px; padding: 16px 20px;
+    position: relative; overflow: hidden;
+  }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 2px; background: var(--accent);
+  }
+  .stat-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+  }
+  .stat-value {
+    font-family: 'Space Mono', monospace; font-size: 28px;
+    font-weight: 700; color: var(--accent);
+  }
+
+  .table-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 4px; overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--surface2); }
+  th {
+    padding: 12px 16px; font-size: 10px; font-weight: 700;
+    letter-spacing: 3px; text-transform: uppercase; color: var(--muted);
+    text-align: left; border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 13px 16px; font-size: 15px; font-weight: 500;
+    border-bottom: 1px solid var(--border); letter-spacing: 0.5px;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr { transition: background 0.15s; }
+  tbody tr:hover { background: var(--surface2); }
+  .top-row td { background: rgba(0,200,160,0.05); }
+
+  .rank-cell { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--muted); width: 50px; }
+  .medal { font-size: 18px; }
+  .email-cell { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .val-cell { font-family: 'Space Mono', monospace; font-size: 13px; color: var(--muted); text-align: right; }
+  .diff-cell { font-family: 'Space Mono', monospace; font-size: 13px; text-align: right; font-weight: 700; }
+  .diff-0   { color: var(--accent); }
+  .diff-low { color: #80d0a0; }
+  .diff-mid { color: var(--gold); }
+  .diff-high{ color: #ff8060; }
+
+  .score-cell { min-width: 160px; }
+  .score-inner { display: flex; align-items: center; gap: 10px; }
+  .bar-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent)); border-radius: 2px; }
+  .score-num {
+    font-family: 'Space Mono', monospace; font-size: 13px;
+    font-weight: 700; color: var(--text); min-width: 36px; text-align: right;
+  }
+
+  .err-msg { font-family: 'Space Mono', monospace; font-size: 12px; color: #ff6060; padding: 20px; text-align: center; }
+  .loading-msg { font-family: 'Space Mono', monospace; font-size: 12px; color: var(--muted); padding: 40px; text-align: center; letter-spacing: 2px; }
+
+  @media (max-width: 600px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+    th.hide-sm, td.hide-sm { display: none; }
+    h1 { font-size: 26px; }
+  }
+</style>
 </head>
-<body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen p-4 md:p-8">
-    <div class="max-w-6xl mx-auto">
-        <!-- Header -->
-        <div class="text-center mb-8">
-            <h1 class="text-5xl font-bold text-white mb-2">🏆 Leaderboard</h1>
-            <p class="text-gray-300 text-lg">RMSE Competition Rankings</p>
-            <div id="lastUpdate" class="text-sm text-gray-400 mt-2"></div>
-        </div>
+<body>
+<div class="container">
 
-        <!-- Search & Filter -->
-        <div class="mb-6 bg-gray-800 rounded-lg shadow-md p-4">
-            <input 
-                type="text" 
-                id="searchInput" 
-                placeholder="🔍 Search for participant ID or submission..." 
-                class="w-full px-4 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white placeholder-gray-400"
-            />
-        </div>
-
-        <!-- Loading State -->
-        <div id="loading" class="flex justify-center items-center py-20">
-            <div class="loading-spinner"></div>
-        </div>
-
-        <!-- Error State -->
-        <div id="error" class="hidden bg-red-900 border border-red-600 text-red-200 px-4 py-3 rounded-lg mb-6">
-            <strong>Fehler:</strong> <span id="errorMessage"></span>
-        </div>
-
-        <!-- Leaderboard -->
-        <div id="leaderboard" class="space-y-3"></div>
-
-        <!-- Stats Footer -->
-        <div id="stats" class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+  <header>
+    <div class="logo-line">
+      <svg width="350" height="100" xmlns="https://www.wedowind.ch/img/we-do-wind-logo.svg">       
+           <image height="100" width="350" href="https://www.wedowind.ch/img/we-do-wind-logo.svg" />    
+      </svg>
+      <h1>Wind<span>Europe</span> Challenge</h1>
     </div>
+    <div class="subtitle">Power Curve Scoreboard</div>
+  </header>
 
-    <script>
-        // URL anpassen für Upload CSV
-        const CSV_URL = 'https://raw.githubusercontent.com/WeDoWind/ODE-challenge-and-Renku-Scoreboard/main/docs/Responses.csv';
-        let allData = [];
-        let filteredData = [];
+  <div class="status-bar">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusText">Connecting...</span>
+  </div>
 
-        // CSV laden und parsen
-        function loadLeaderboard() {
-            console.log('🔍 Lade CSV von:', CSV_URL);
-            Papa.parse(CSV_URL, {
-                download: true,
-                header: true,
-                complete: function(results) {
-                    console.log('✅ CSV geladen! Rohdaten:', results);
-                    console.log('📊 Anzahl Zeilen:', results.data.length);
-                    console.log('📋 Erste Zeile:', results.data[0]);
-                    
-                    allData = results.data.filter(row => row.Rank && row.RMSE);
-                    console.log('✔️ Nach Filter:', allData.length, 'Zeilen');
-                    console.log('📝 Gefilterte Daten:', allData);
-                    
-                    filteredData = allData;
-                    document.getElementById('loading').style.display = 'none';
-                    renderLeaderboard();
-                    renderStats();
-                    updateTimestamp();
-                },
-                error: function(error) {
-                    console.error('❌ Fehler beim Laden:', error);
-                    document.getElementById('loading').style.display = 'none';
-                    showError('Konnte CSV nicht laden: ' + error.message);
-                }
-            });
+  <div id="stats"></div>
+  <div id="out"><div class="loading-msg">// LOADING LEADERBOARD...</div></div>
+
+</div>
+
+<script>
+  /* ============================================================
+     CONFIGURATION — only edit this section
+     ============================================================ */
+
+  const CSV_URL = 'https://raw.githubusercontent.com/WeDoWind/ODE-challenge-and-Renku-Scoreboard/main/docs/Responses.csv';
+
+  // Correct answers — not visible to users
+  const CORRECT_V1 = 25;
+  const CORRECT_V2 = 30;
+  const CORRECT_V3 = 50;
+  // Auto-refresh interval in seconds
+  const REFRESH_SECONDS = 60;
+
+  /* ============================================================ */
+
+  const medals = ['🥇', '🥈', '🥉'];
+
+  function setStatus(state, msg) {
+    document.getElementById('statusDot').className = 'dot' + (state === 'live' ? ' live' : state === 'error' ? ' error' : '');
+    document.getElementById('statusText').textContent = msg;
+  }
+
+  function diffClass(d) {
+    if (d === 0) return 'diff-0';
+    if (d <= 10) return 'diff-low';
+    if (d <= 30) return 'diff-mid';
+    return 'diff-high';
+  }
+
+  function processRows(rows) {
+    const entries = [];
+
+    for (const r of rows) {
+      const keys = Object.keys(r);
+
+      const email = r[keys[1]] || '—';
+
+      // IMPORTANT: numeric values are columns 5,6,7
+      const values = Object.values(r);
+
+      // Debug once to see structure
+      console.log(values);
+
+      // Try both possible positions (because of duplicate headers)
+      const v1 = parseFloat(values[5]) || parseFloat(values[2]);
+      const v2 = parseFloat(values[6]) || parseFloat(values[3]);
+      const v3 = parseFloat(values[7]) || parseFloat(values[4]);
+
+      if (isNaN(v1) || isNaN(v2) || isNaN(v3)) continue;
+
+      // RMSE calculation
+      const mse =
+        (Math.pow(v1 - CORRECT_V1, 2) +
+        Math.pow(v2 - CORRECT_V2, 2) +
+        Math.pow(v3 - CORRECT_V3, 2)) / 3;
+
+      const rmse = Math.sqrt(mse);
+
+      // Optional score (higher is better)
+      const score = Math.max(0, 100 - Math.round(rmse * 2));
+
+      entries.push({ email, v1, v2, v3, rmse, score, timestamp: r[keys[0]] });
+    }
+
+    // Sort by RMSE (lower = better)
+    entries.sort((a, b) => a.rmse - b.rmse);
+
+    return entries;
+  }
+  function groupByDay(entries) {
+      const groups = {};
+
+      entries.forEach(e => {
+        if (!e.timestamp) return;
+
+        // Extract date part (before space)
+        const day = e.timestamp.split(' ')[0];
+
+        if (!groups[day]) groups[day] = [];
+        groups[day].push(e);
+      });
+
+      // Sort each day by RMSE
+      Object.keys(groups).forEach(day => {
+        groups[day].sort((a, b) => a.rmse - b.rmse);
+      });
+
+      return groups;
+    }
+
+  function render(entries) {
+    // Stats
+    const avgRmse = (entries.reduce((s, e) => s + e.rmse, 0) / entries.length).toFixed(2);
+    const perfect = entries.filter(e => e.rmse === 0).length; 
+    document.getElementById('stats').innerHTML = `
+      <div class="stats">
+        <div class="stat-card"><div class="stat-label">Participants</div><div class="stat-value">${entries.length}</div></div>
+        <div class="stat-card"><div class="stat-label">Avg. RMSE</div><div class="stat-value">${avgRmse}</div></div>
+        <div class="stat-card"><div class="stat-label">Perfect scores</div><div class="stat-value">${perfect}</div></div>
+      </div>`;
+
+    // Table
+    const maxScore = entries[0].score || 1;
+    let html = `<div class="table-wrap"><table>
+      <thead><tr>
+        <th>Rank</th>
+        <th>Participant</th>
+        <th class="hide-sm" style="text-align:right">Val 1</th>
+        <th class="hide-sm" style="text-align:right">Val 2</th>
+        <th class="hide-sm" style="text-align:right">Val 3</th>
+        <th style="text-align:right">RMSE</th>
+      </tr></thead><tbody>`;
+
+    entries.forEach((e, i) => {
+      const barW = Math.round((e.score / maxScore) * 100);
+      html += `<tr class="${i === 0 ? 'top-row' : ''}">
+        <td class="rank-cell">${medals[i] ? '<span class="medal">' + medals[i] + '</span>' : '#' + (i + 1)}</td>
+        <td class="email-cell">${e.email}</td>
+        <td class="val-cell hide-sm">${e.v1}</td>
+        <td class="val-cell hide-sm">${e.v2}</td>
+        <td class="val-cell hide-sm">${e.v3}</td>
+        <td class="diff-cell">${e.rmse.toFixed(3)}</td>
+        <td class="score-cell">
+          <div class="score-inner">
+            <div class="bar-track"><div class="bar-fill" style="width:${barW}%"></div></div>
+            <span class="score-num">${e.score}</span>
+          </div>
+        </td>
+      </tr>`;
+    });
+
+    html += '</tbody></table></div>';
+    document.getElementById('out').innerHTML = html;
+
+    const dailyGroups = groupByDay(entries);
+
+  let dailyHtml = '<div style="margin-top:40px">';
+  dailyHtml += '<h2 style="margin-bottom:10px">📅 Daily Leaderboard</h2>';
+
+  Object.keys(dailyGroups)
+    .sort((a, b) => new Date(b) - new Date(a)) // newest first
+    .forEach(day => {
+      const dayEntries = dailyGroups[day];
+
+      dailyHtml += `
+        <h3 style="margin-top:20px">${day}</h3>
+        <table style="width:100%; margin-bottom:20px">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Participant</th>
+              <th style="text-align:right">RMSE</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      dayEntries.slice(0, 5).forEach((e, i) => {
+        dailyHtml += `
+          <tr>
+            <td>${medals[i] || '#' + (i + 1)}</td>
+            <td>${e.email}</td>
+            <td style="text-align:right">${e.rmse.toFixed(3)}</td>
+          </tr>
+        `;
+      });
+
+      dailyHtml += '</tbody></table>';
+    });
+
+  dailyHtml += '</div>';
+
+  // Append below main table
+  document.getElementById('out').innerHTML += dailyHtml;
+
+  }
+
+  function loadAndRender() {
+    setStatus('loading', 'Refreshing...');
+    Papa.parse(CSV_URL + '?nocache=' + Date.now(), {
+      download: true,
+      header: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        const entries = processRows(results.data);
+        if (!entries.length) {
+          document.getElementById('stats').innerHTML = '';
+          document.getElementById('out').innerHTML = '<div class="err-msg">// No valid entries found in CSV.</div>';
+          setStatus('error', 'No valid data');
+          return;
         }
+        render(entries);
+        const now = new Date().toLocaleTimeString();
+        setStatus('live', 'Live · last updated ' + now + ' · refreshes every ' + REFRESH_SECONDS + 's');
+      },
+      error: function(err) {
+        document.getElementById('out').innerHTML = '<div class="err-msg">// ERROR: ' + (err.message || 'Could not load CSV') + '</div>';
+        setStatus('error', 'Failed to load — check URL or CORS settings on GitHub Pages');
+      }
+    });
+    
+  }
 
-        // Leaderboard rendern
-        function renderLeaderboard() {
-            const container = document.getElementById('leaderboard');
-            
-            if (filteredData.length === 0) {
-                container.innerHTML = `
-                    <div class="bg-gray-800 rounded-lg shadow-md p-8 text-center text-gray-400">
-                        No results found.
-                    </div>
-                `;
-                return;
-            }
-
-            const html = filteredData.map((row, index) => {
-                const rank = parseInt(row.Rank);
-                const isTopThree = rank <= 3;
-                const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
-                const bgColor = isTopThree 
-                    ? 'bg-gradient-to-r from-yellow-900/20 to-orange-900/20' 
-                    : 'bg-gray-800';
-                const borderColor = isTopThree 
-                    ? 'border-yellow-600' 
-                    : 'border-gray-700';
-                
-                return `
-                    <div class="fade-in ${bgColor} rounded-lg shadow-md border-2 ${borderColor} p-5 hover:shadow-xl transition-all duration-300" style="animation-delay: ${index * 0.05}s">
-                        <div class="flex items-center justify-between">
-                            <!-- Rank Badge -->
-                            <div class="rank-badge ${isTopThree ? 'text-4xl' : 'text-2xl font-bold text-gray-500'}">
-                                ${medal || rank}
-                            </div>
-
-                            <!-- Participant Info -->
-                            <div class="flex-1 mx-6">
-                                <div class="text-xl font-bold text-white">
-                                    ${row.Submission_ID}
-                                </div>
-                                <div class="text-sm text-gray-300 mt-1">
-                                    <span class="inline-block bg-blue-900 text-blue-200 px-2 py-1 rounded mr-2">
-                                        Participant ${row.Participant_ID}
-                                    </span>
-                                    <span class="inline-block bg-green-900 text-green-200 px-2 py-1 rounded">
-                                        Submission #${row.Submission_Num}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <!-- RMSE Score -->
-                            <div class="text-right">
-                                <div class="text-3xl font-mono font-bold ${isTopThree ? 'text-orange-400' : 'text-gray-300'}">
-                                    ${parseFloat(row.RMSE).toFixed(6)}
-                                </div>
-                                <div class="text-xs text-gray-400 uppercase tracking-wider mt-1">
-                                    RMSE
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            container.innerHTML = html;
-        }
-
-        // Statistiken rendern
-        function renderStats() {
-            const totalSubmissions = allData.length;
-            const uniqueParticipants = new Set(allData.map(r => r.Participant_ID)).size;
-            const bestRMSE = allData.length > 0 ? parseFloat(allData[0].RMSE).toFixed(6) : 'N/A';
-
-            document.getElementById('stats').innerHTML = `
-                <div class="bg-gray-800 rounded-lg shadow-md p-6 text-center">
-                    <div class="text-4xl font-bold text-blue-400">${totalSubmissions}</div>
-                    <div class="text-gray-300 mt-2">Submissions</div>
-                </div>
-                <div class="bg-gray-800 rounded-lg shadow-md p-6 text-center">
-                    <div class="text-4xl font-bold text-green-400">${uniqueParticipants}</div>
-                    <div class="text-gray-300 mt-2">Participants</div>
-                </div>
-                <div class="bg-gray-800 rounded-lg shadow-md p-6 text-center">
-                    <div class="text-4xl font-bold text-orange-400">${bestRMSE}</div>
-                    <div class="text-gray-300 mt-2">Best RMSE</div>
-                </div>
-            `;
-        }
-
-        // Suchfunktion
-        document.getElementById('searchInput').addEventListener('input', function(e) {
-            const query = e.target.value.toLowerCase();
-            filteredData = allData.filter(row => 
-                row.Submission_ID.toLowerCase().includes(query) ||
-                row.Participant_ID.toLowerCase().includes(query)
-            );
-            renderLeaderboard();
-        });
-
-        // Timestamp aktualisieren
-        function updateTimestamp() {
-            const now = new Date();
-            document.getElementById('lastUpdate').textContent = 
-                `Last updated: ${now.toLocaleString('de-DE')}`;
-        }
-
-        // Fehler anzeigen
-        function showError(message) {
-            document.getElementById('errorMessage').textContent = message;
-            document.getElementById('error').classList.remove('hidden');
-        }
-
-        // Auto-Refresh alle 5 Minuten
-        setInterval(loadLeaderboard, 5 * 60 * 1000);
-
-        // Initialize
-        loadLeaderboard();
-    </script>
+  loadAndRender();
+  setInterval(loadAndRender, REFRESH_SECONDS * 1000);
+</script>
 </body>
-
 </html>
