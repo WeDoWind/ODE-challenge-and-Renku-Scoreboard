@@ -174,13 +174,12 @@
      CONFIGURATION — only edit this section
      ============================================================ */
 
-  const CSV_URL = 'https://wedowind.github.io/Static-Yaw-Ground-Truth-Challenge/rmse_ranking.csv';
+  const CSV_URL = 'https://raw.githubusercontent.com/WeDoWind/ODE-challenge-and-Renku-Scoreboard/main/docs/Responses.csv';
 
   // Correct answers — not visible to users
   const CORRECT_V1 = 25;
   const CORRECT_V2 = 30;
-  const CORRECT_V3 = 40;
-
+  const CORRECT_V3 = 50;
   // Auto-refresh interval in seconds
   const REFRESH_SECONDS = 60;
 
@@ -202,31 +201,73 @@
 
   function processRows(rows) {
     const entries = [];
+
     for (const r of rows) {
       const keys = Object.keys(r);
-      // Email is in column index 1
+
       const email = r[keys[1]] || '—';
-      // Numeric guesses are in column indices 5, 6, 7
-      const v1 = parseFloat(r[keys[5]]);
-      const v2 = parseFloat(r[keys[6]]);
-      const v3 = parseFloat(r[keys[7]]);
+
+      // IMPORTANT: numeric values are columns 5,6,7
+      const values = Object.values(r);
+
+      // Debug once to see structure
+      console.log(values);
+
+      // Try both possible positions (because of duplicate headers)
+      const v1 = parseFloat(values[5]) || parseFloat(values[2]);
+      const v2 = parseFloat(values[6]) || parseFloat(values[3]);
+      const v3 = parseFloat(values[7]) || parseFloat(values[4]);
+
       if (isNaN(v1) || isNaN(v2) || isNaN(v3)) continue;
-      const diff = Math.round((Math.abs(v1 - CORRECT_V1) + Math.abs(v2 - CORRECT_V2) + Math.abs(v3 - CORRECT_V3)) * 10) / 10;
-      const score = Math.max(0, 300 - Math.round(diff));
-      entries.push({ email, v1, v2, v3, diff, score });
+
+      // RMSE calculation
+      const mse =
+        (Math.pow(v1 - CORRECT_V1, 2) +
+        Math.pow(v2 - CORRECT_V2, 2) +
+        Math.pow(v3 - CORRECT_V3, 2)) / 3;
+
+      const rmse = Math.sqrt(mse);
+
+      // Optional score (higher is better)
+      const score = Math.max(0, 100 - Math.round(rmse * 2));
+
+      entries.push({ email, v1, v2, v3, rmse, score, timestamp: r[keys[0]] });
     }
-    entries.sort((a, b) => a.diff - b.diff);
+
+    // Sort by RMSE (lower = better)
+    entries.sort((a, b) => a.rmse - b.rmse);
+
     return entries;
   }
+  function groupByDay(entries) {
+      const groups = {};
+
+      entries.forEach(e => {
+        if (!e.timestamp) return;
+
+        // Extract date part (before space)
+        const day = e.timestamp.split(' ')[0];
+
+        if (!groups[day]) groups[day] = [];
+        groups[day].push(e);
+      });
+
+      // Sort each day by RMSE
+      Object.keys(groups).forEach(day => {
+        groups[day].sort((a, b) => a.rmse - b.rmse);
+      });
+
+      return groups;
+    }
 
   function render(entries) {
     // Stats
-    const avgDiff = (entries.reduce((s, e) => s + e.diff, 0) / entries.length).toFixed(1);
-    const perfect = entries.filter(e => e.diff === 0).length;
+    const avgRmse = (entries.reduce((s, e) => s + e.rmse, 0) / entries.length).toFixed(2);
+    const perfect = entries.filter(e => e.rmse === 0).length; 
     document.getElementById('stats').innerHTML = `
       <div class="stats">
         <div class="stat-card"><div class="stat-label">Participants</div><div class="stat-value">${entries.length}</div></div>
-        <div class="stat-card"><div class="stat-label">Avg. total error</div><div class="stat-value">${avgDiff}</div></div>
+        <div class="stat-card"><div class="stat-label">Avg. RMSE</div><div class="stat-value">${avgRmse}</div></div>
         <div class="stat-card"><div class="stat-label">Perfect scores</div><div class="stat-value">${perfect}</div></div>
       </div>`;
 
@@ -239,8 +280,7 @@
         <th class="hide-sm" style="text-align:right">Val 1</th>
         <th class="hide-sm" style="text-align:right">Val 2</th>
         <th class="hide-sm" style="text-align:right">Val 3</th>
-        <th style="text-align:right">Error</th>
-        <th>Score</th>
+        <th style="text-align:right">RMSE</th>
       </tr></thead><tbody>`;
 
     entries.forEach((e, i) => {
@@ -251,7 +291,7 @@
         <td class="val-cell hide-sm">${e.v1}</td>
         <td class="val-cell hide-sm">${e.v2}</td>
         <td class="val-cell hide-sm">${e.v3}</td>
-        <td class="diff-cell ${diffClass(e.diff)}">${e.diff}</td>
+        <td class="diff-cell">${e.rmse.toFixed(3)}</td>
         <td class="score-cell">
           <div class="score-inner">
             <div class="bar-track"><div class="bar-fill" style="width:${barW}%"></div></div>
@@ -263,6 +303,48 @@
 
     html += '</tbody></table></div>';
     document.getElementById('out').innerHTML = html;
+
+    const dailyGroups = groupByDay(entries);
+
+    let dailyHtml = '<div style="margin-top:40px">';
+    dailyHtml += '<h2 style="margin-bottom:10px">📅 Daily Leaderboard</h2>';
+
+    Object.keys(dailyGroups)
+      .sort((a, b) => new Date(b) - new Date(a)) // newest first
+      .forEach(day => {
+        const dayEntries = dailyGroups[day];
+
+        dailyHtml += `
+          <h3 style="margin-top:20px">${day}</h3>
+          <table style="width:100%; margin-bottom:20px">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Participant</th>
+                <th style="text-align:right">RMSE</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+        dayEntries.slice(0, 5).forEach((e, i) => {
+          dailyHtml += `
+            <tr>
+              <td>${medals[i] || '#' + (i + 1)}</td>
+              <td>${e.email}</td>
+              <td style="text-align:right">${e.rmse.toFixed(3)}</td>
+            </tr>
+          `;
+        });
+
+        dailyHtml += '</tbody></table>';
+      });
+
+  dailyHtml += '</div>';
+
+  // Append below main table
+  document.getElementById('out').innerHTML += dailyHtml;
+
   }
 
   function loadAndRender() {
@@ -288,6 +370,7 @@
         setStatus('error', 'Failed to load — check URL or CORS settings on GitHub Pages');
       }
     });
+    
   }
 
   loadAndRender();
