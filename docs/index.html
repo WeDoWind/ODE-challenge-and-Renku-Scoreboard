@@ -199,10 +199,10 @@
     const entries = [];
 
     for (const r of rows) {
-      const keys = Object.keys(r);
-
-      const email = r[keys[1]] || '—';
-
+      const keys = Object.keys(r) ;
+      console.log(keys)
+      const participant = r[keys[8]] || '—';
+      // const email = r[keys[1]] || '—';
       // IMPORTANT: numeric values are columns 5,6,7
       const values = Object.values(r);
 
@@ -227,7 +227,7 @@
       // Optional score (higher is better)
       const score = Math.max(0, 100 - Math.round(rmse * 2));
 
-      entries.push({ email, v1, v2, v3, rmse, score, timestamp: r[keys[0]] });
+      entries.push({ participant, v1, v2, v3, rmse, score, timestamp: r[keys[0]] });
     }
 
     // Sort by RMSE (lower = better)
@@ -283,7 +283,7 @@
       const barW = Math.round((e.score / maxScore) * 100);
       html += `<tr class="${i === 0 ? 'top-row' : ''}">
         <td class="rank-cell">${medals[i] ? '<span class="medal">' + medals[i] + '</span>' : '#' + (i + 1)}</td>
-        <td class="email-cell">${e.email}</td>
+        <td class="participant-cell">${e.participant}</td>
         <td class="val-cell hide-sm">${e.v1}</td>
         <td class="val-cell hide-sm">${e.v2}</td>
         <td class="val-cell hide-sm">${e.v3}</td>
@@ -327,7 +327,7 @@
         dailyHtml += `
           <tr>
             <td>${medals[i] || '#' + (i + 1)}</td>
-            <td>${e.email}</td>
+            <td>${e.participant}</td>
             <td style="text-align:right">${e.rmse.toFixed(3)}</td>
           </tr>
         `;
