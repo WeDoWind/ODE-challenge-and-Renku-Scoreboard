@@ -12,7 +12,8 @@
     --surface: #131920;
     --surface2: #1c2530;
     --border: #253040;
-    --accent: #00c8a0;
+    /* --accent: #00c8a0; */
+    --accent: #53519e;
     --accent2: #0098f0;
     --text: #e8edf2;
     --muted: #5a7080;
@@ -44,7 +45,9 @@
 
   .container { max-width: 960px; margin: 0 auto; position: relative; z-index: 1; }
 
-  header { margin-bottom: 40px; }
+  header { 
+    margin-bottom: 80px;
+  }
   .logo-line { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
   .windmill-icon { width: 36px; height: 36px; flex-shrink: 0; }
   h1 {
@@ -144,15 +147,8 @@
 
   <header>
     <div class="logo-line">
-      <svg class="windmill-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <line x1="18" y1="18" x2="18" y2="5" stroke="#00c8a0" stroke-width="2" stroke-linecap="round"/>
-        <line x1="18" y1="18" x2="18" y2="31" stroke="#00c8a0" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="2 2"/>
-        <line x1="18" y1="18" x2="6" y2="24" stroke="#00c8a0" stroke-width="2" stroke-linecap="round"/>
-        <line x1="18" y1="18" x2="30" y2="24" stroke="#00c8a0" stroke-width="2" stroke-linecap="round"/>
-        <circle cx="18" cy="18" r="3" fill="#00c8a0"/>
-        <ellipse cx="18" cy="9" rx="2.5" ry="4.5" fill="#00c8a0" opacity="0.8"/>
-        <ellipse cx="18" cy="9" rx="2.5" ry="4.5" fill="#00c8a0" opacity="0.5" transform="rotate(120 18 18)"/>
-        <ellipse cx="18" cy="9" rx="2.5" ry="4.5" fill="#00c8a0" opacity="0.5" transform="rotate(240 18 18)"/>
+      <svg width="350" height="100" xmlns="https://www.wedowind.ch/img/we-do-wind-logo.svg">       
+           <image height="100" width="350" href="https://www.wedowind.ch/img/we-do-wind-logo.svg" />    
       </svg>
       <h1>Wind<span>Europe</span> Challenge</h1>
     </div>
@@ -306,39 +302,39 @@
 
     const dailyGroups = groupByDay(entries);
 
-    let dailyHtml = '<div style="margin-top:40px">';
-    dailyHtml += '<h2 style="margin-bottom:10px">📅 Daily Leaderboard</h2>';
+  let dailyHtml = '<div style="margin-top:40px">';
+  dailyHtml += '<h2 style="margin-bottom:10px">📅 Daily Leaderboard</h2>';
 
-    Object.keys(dailyGroups)
-      .sort((a, b) => new Date(b) - new Date(a)) // newest first
-      .forEach(day => {
-        const dayEntries = dailyGroups[day];
+  Object.keys(dailyGroups)
+    .sort((a, b) => new Date(b) - new Date(a)) // newest first
+    .forEach(day => {
+      const dayEntries = dailyGroups[day];
 
-        dailyHtml += `
-          <h3 style="margin-top:20px">${day}</h3>
-          <table style="width:100%; margin-bottom:20px">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>Participant</th>
-                <th style="text-align:right">RMSE</th>
-              </tr>
-            </thead>
-            <tbody>
-        `;
-
-        dayEntries.slice(0, 5).forEach((e, i) => {
-          dailyHtml += `
+      dailyHtml += `
+        <h3 style="margin-top:20px">${day}</h3>
+        <table style="width:100%; margin-bottom:20px">
+          <thead>
             <tr>
-              <td>${medals[i] || '#' + (i + 1)}</td>
-              <td>${e.email}</td>
-              <td style="text-align:right">${e.rmse.toFixed(3)}</td>
+              <th>Rank</th>
+              <th>Participant</th>
+              <th style="text-align:right">RMSE</th>
             </tr>
-          `;
-        });
+          </thead>
+          <tbody>
+      `;
 
-        dailyHtml += '</tbody></table>';
+      dayEntries.slice(0, 5).forEach((e, i) => {
+        dailyHtml += `
+          <tr>
+            <td>${medals[i] || '#' + (i + 1)}</td>
+            <td>${e.email}</td>
+            <td style="text-align:right">${e.rmse.toFixed(3)}</td>
+          </tr>
+        `;
       });
+
+      dailyHtml += '</tbody></table>';
+    });
 
   dailyHtml += '</div>';
 
