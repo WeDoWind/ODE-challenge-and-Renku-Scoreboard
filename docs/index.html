@@ -170,7 +170,7 @@
      CONFIGURATION — only edit this section
      ============================================================ */
 
-  const CSV_URL = 'https://raw.githubusercontent.com/WeDoWind/ODE-challenge-and-Renku-Scoreboard/main/docs/Responses.csv';
+  const CSV_URL = 'https://raw.githubusercontent.com/WeDoWind/ODE-challenge-and-Renku-Scoreboard/main/docs/entries_list.csv';
 
   // Correct answers — not visible to users
   const CORRECT_V1 = 10.1;
@@ -201,7 +201,7 @@
     for (const r of rows) {
       const keys = Object.keys(r) ;
       console.log(keys)
-      const participant = r[keys[9]] || '—';
+      const participant = r[keys[8]] || '—';
       // const email = r[keys[1]] || '—';
       // IMPORTANT: numeric values are columns 5,6,7
       const values = Object.values(r);
@@ -210,9 +210,9 @@
       console.log(values);
 
       // Try both possible positions (because of duplicate headers)
-      const v1 = parseFloat(values[5]) || parseFloat(values[2]);
-      const v2 = parseFloat(values[6]) || parseFloat(values[3]);
-      const v3 = parseFloat(values[7]) || parseFloat(values[4]);
+      const v1 = parseFloat(values[4]) || parseFloat(values[1]);
+      const v2 = parseFloat(values[5]) || parseFloat(values[2]);
+      const v3 = parseFloat(values[6]) || parseFloat(values[3]);
 
       if (isNaN(v1) || isNaN(v2) || isNaN(v3)) continue;
 
