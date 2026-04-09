@@ -5,7 +5,7 @@ import numpy as np
 from scipy.stats import weibull_min
 
 
-def fit_power_curve(wind_speed, power_output, v_fit=np.linspace(0, 20, 100), P_rated = 1):
+def fit_power_curve(wind_speed, power_output, v_fit=np.linspace(0, 20, 100), P_rated=1):
     def power_curve(v, v_ci, v_r, k):
         """Cubic-based power curve for curve fitting."""
         v = np.array(v)
@@ -46,8 +46,8 @@ def plot_pc(
     v_fit=np.linspace(0, 20, 100),
     reveres_zorder=False,
     plot_pc_fit=False,
-    P_rated = 1,
-    P_rated_ref = 1,
+    P_rated=1,
+    P_rated_ref=1,
 ):
     plt.figure(figsize=(10, 6))
     pdf_fitted = fit_weibull(np.hstack([wind_speed, wind_speed_ref]), v_fit)
@@ -78,10 +78,12 @@ def plot_pc(
     plt.xlabel("Wind Speed (m/s)")
     plt.ylabel("Value (Normalized Power Curve \n& Weibull Probability Density)")
     plt.title(title)
-    
+
     if plot_pc_fit:
-        P_rated_fit = fit_power_curve(wind_speed, power_output, v_fit, P_rated = P_rated)
-        P_rated_fit_ref = fit_power_curve(wind_speed_ref, power_output_ref, v_fit, P_rated = P_rated_ref)
+        P_rated_fit = fit_power_curve(wind_speed, power_output, v_fit, P_rated=P_rated)
+        P_rated_fit_ref = fit_power_curve(
+            wind_speed_ref, power_output_ref, v_fit, P_rated=P_rated_ref
+        )
         plt.plot(
             v_fit,
             P_rated_fit,

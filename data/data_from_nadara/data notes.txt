@@ -1,5 +1,0 @@
-for high resolution data a value is only present on update.  Hence a NULLvalue does not neccisarily mean no value, it can mena that there has been no change in value since the last change
-
-Not all signals are available, columsn will therefore contain all NULL values
-
-Ten minute averagaes are to the "start" of period i.e. data averageing between 00:00 and 00:10 will be give the timestamp 00:00
